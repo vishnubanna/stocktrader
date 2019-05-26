@@ -3,15 +3,22 @@ import pandas as pd
 import time
 import datetime as dt
 import numpy as np
-import matplotlib.pyplot as plt
+import multiprocessing as mp
+
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.ticker as mticker
+from mpl_finance import candlestick_ohlc
+
 from sklearn import preprocessing, svm
 from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.linear_model import LinearRegression
 
 import pandas as pd
 from pandas_datareader import data as pdr
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
+
 import fix_yahoo_finance as yf
 
 import tensorflow as tf
@@ -39,29 +46,82 @@ def get_data(ticker):
     pass
 
 def graphData(stock):
-  try:
     df = stock
     df.reset_index(inplace = True)
-    fig = plt.figure()
-    ax1 = plt.subplot(2,1,1)
+    fig1 = plt.figure()
+    ax1 = plt.subplot2grid((5,4),(0,0), rowspan = 4, colspan = 4)
     ax1.plot(df.Date, df.Open)
     ax1.plot(df.Date, df.High)
     ax1.plot(df.Date, df.Low)
     ax1.plot(df.Date, df.Close)
     ax1.grid(True)
+    plt.ylabel('Stock Price')
+    #ax1.xaxis.set_major_locator(mticker.MaxNLocator(10))
+    #ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
-    ax2 = plt.subplot(2,1,2)
+    #for label in ax1.xaxis.get_ticklabels():
+    #label.set_rotation(45)
+
+    ax2 = plt.subplot2grid((5,4), (4,0), sharex = ax1, rowspan = 1, colspan = 4)
     ax2.bar(df.Date,df.Volume)
+    ax2.grid(True)
+    plt.ylabel('Volume')
 
-    ax1.xaxis.set_major_locator(mticker.MaxNLocator(10))
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-
-    for label in ax1.xaxis.get_tickerlabels():
-      label.set_rotation(45)
-
+    plt.xlabel('Date')
+    plt.suptitle('Price v Time')
+    plt.setp(ax1.get_xticklabels(), visible = False)
+    plt.show()
     return
-  except:
-    pass
+
+def getGraphSpecified(df):
+    df.reset_index(inplace = True)
+    print(df.head())
+    fig1 = plt.figure()
+    ax1 = plt.subplot2grid((5,4),(0,0), rowspan = 4, colspan = 4)
+    #ax1.plot(df.Date, df.Open)
+    ax1.plot(df.Date, df.m10MAvg)
+    ax1.plot(df.Date, df.m20MAvg)
+    ax1.plot(df.Date, df.m50MAvg)
+    ax1.plot(df.Date, df.Close)
+    ax1.plot(df.Date, df.volitlity)
+    ax1.plot(df.Date, df['% change day'])
+
+    ax1.grid(True)
+    plt.ylabel('Stock Price')
+
+    ax2 = plt.subplot2grid((5,4), (4,0), sharex = ax1, rowspan = 1, colspan = 4)
+    ax2.bar(df.Date, df.Volume)
+    ax2.plot(df.Date, df.VolumeMAvg)
+    ax2.grid(True)
+    plt.ylabel('Volume')
+    plt.show()
+    return
+
+def getCandlestick(stock):
+    df = stock
+    dv = df[['Volume']]
+
+    df.reset_index(inplace = True)
+    df = df[['Date', 'Open', 'High', 'Low', 'Close']]
+
+    df['Date'] = df.Date.map(mdates.date2num)
+    print(df.head())
+
+    fig2 = plt.figure()
+    ax1 = plt.subplot2grid((5,4),(0,0), rowspan = 4, colspan = 4)
+    ax2 = plt.subplot2grid((5,4), (4,0), sharex = ax1, rowspan = 1, colspan = 4)
+    ax1.xaxis_date()
+
+    candlestick_ohlc(ax1, df.values, width = 0.75, colorup = 'g')
+    #df['26Ma'] = df.Close.rolling(window = 26, min_periods = 0).mean()
+    #ax2.fill_between(df.Date.map(mdates.date2num), dv.values, 0)
+    #ax2 = plt.subplot2grid((5,4), (4,0), sharex = ax1, rowspan = 1, colspan = 4)
+    ax2.bar(df.Date,dv.Volume)
+    ax2.grid(True)
+    plt.ylabel('Volume')
+
+    plt.show()
+    return
 
 def timeSeries(df):
     df['f01'] = df['Adj Close'].shift(-1)
@@ -83,17 +143,17 @@ def timeSeries(df):
 def dataSpecify(df):
 
     #print(df.head(), df.tail())
-    df['50 MAvg'] = df['Close'].rolling(window = 50, min_periods = 0).mean()
-    df['20 MAvg'] = df['Close'].rolling(window = 20, min_periods = 0).mean()
-    df['10 MAvg'] = df['Close'].rolling(window = 10, min_periods = 0).mean()
+    df['m50MAvg'] = df['Close'].rolling(window = 50, min_periods = 0).mean()
+    df['m20MAvg'] = df['Close'].rolling(window = 20, min_periods = 0).mean()
+    df['m10MAvg'] = df['Close'].rolling(window = 10, min_periods = 0).mean()
     df['VolumeMAvg'] = df['Volume'].rolling(window = 50, min_periods = 0).mean()
-    df['volitility'] = (df['Close']-df['50 MAvg'])/df['Close'] * 100
+    df['volitility'] = (df['Close']-df['m50MAvg'])/df['Close'] * 100
 
     df['vshift'] = df['volitility'].shift(1)
     df['volSlope'] = df['volitility'] - df['vshift']
 
-    df['50MAshift'] = df['50 MAvg'].shift(1)
-    df['50MASlope'] = (df['50 MAvg'] - df['50MAshift'])
+    df['50MAshift'] = df['m50MAvg'].shift(1)
+    df['50MASlope'] = (df['m50MAvg'] - df['50MAshift'])
 
     df['% change day'] = (df['Open'] - df['Close']) / df['Open'] * 100
     df['% daily volit'] = (df['High'] - df['Close']) / df['High'] * 100
@@ -102,10 +162,11 @@ def dataSpecify(df):
 
     #df = df[['Close', '50 MAvg', 'Volume', 'volitility', '% daily volit','% change day' ,'VolumeMAvg']]
     #df = df[['Close', '50 MAvg', 'Volume', 'volitility', '% daily volit','% change day' ,'VolumeMAvg']]
-    df = df[['Close', 'Open', '50 MAvg',  'volitility', '% daily volit','% change day', 'Volume','VolumeMAvg']]
+    dg = df[['Close', 'Open', 'm50MAvg', 'm10MAvg', 'm20MAvg',  'volitility', '% daily volit','% change day', 'Volume','VolumeMAvg']]
+    df = df[['Close', 'Open', 'm50MAvg',  'volitility', '% daily volit','% change day', 'Volume','VolumeMAvg']]
     print(df.head(), df.tail())
 
-    return df
+    return df, dg
 
 def certainty_testing(df):
     close = np.ndarray.flatten(df.VolumeMAvg.values)
@@ -144,7 +205,7 @@ def volumeCertainty(df):
     #volume = test[i]
     #vavg = close[i]
 
-    if volt > vavgt:
+    if volt >= vavgt:
         return 1
     else:
         return 0
@@ -228,13 +289,20 @@ def nuralNetTwo(X_train, X_test, y_train, y_test, X_lately):
 def predictionReduce(pred, pred1):
     return (pred + pred1)/2
 
+#def
+
 
 
 df = get_data('AAPL')
-data = dataSpecify(df)
-c = volumeCertainty(data)
+#getCandlestick(df)
+data, gdata = dataSpecify(df)
 
+# subp = mp.Process(target = getGraphSpecified, args = (gdata, ))
+# subp.start()
+
+c = volumeCertainty(data)
 print(c)
+
 
 #ts = timeSeries(df)
 #certainty_t = certainty_testing(df)
