@@ -26,7 +26,38 @@ import tensorflow.keras as ks
 
 yf.pdr_override()
 
+# def get_data(ticker):
+#   try:
+#     print(ticker)
+#     #start = dt.datetime(1950, 1, 1)
+#     start = dt.datetime(2000, 1, 1)
+#     #start = dt.datetime(2010, 1, 1)
+#     end = dt.datetime.today() #- dt.timedelta(days = 1)
+#     df = pdr.get_data_yahoo(ticker, start, end)
+#
+#     while df.empty:
+#         print('here')
+#         df = pdr.get_data_yahoo(ticker, start, end)
+#
+#     print(df.head())
+#     print(df.tail())
+#     return(df)
+#   except:
+#     pass
+def getData2(ticker, tsfunc = 1, tlen = '1', FoC = 'full'):
+    #FoC = full or compact
+    apikey = '9OWLY1IEBT5CH6I8'
+    intraday = '&interval='+tlen+'min&'
+    if tsfunc == 1:
+        tsfunc = 'TIME_SERIES_DAILY'
+        url = 'https://www.alphavantage.co/query?function=' + tsfunc + '&symbol= '+ ticker +' &outputsize='+FoC+'&apikey=' + apikey +'&datatype=csv'
+    elif tsfunc == 2:
+        tsfunc = 'TIME_SERIES_INTRADAY'
+        url = 'https://www.alphavantage.co/query?function=' + tsfunc + '&symbol= '+ ticker + intraday + ' &outputsize='+FoC+'&apikey=' + apikey +'&datatype=csv'
+
+
 def get_data(ticker):
+  #we may have to change thit to get the data from more stable source. this will break if the ppl at yahoo change their site evena little
   try:
     print(ticker)
     #start = dt.datetime(1950, 1, 1)
@@ -35,8 +66,7 @@ def get_data(ticker):
     end = dt.datetime.today() #- dt.timedelta(days = 1)
     df = pdr.get_data_yahoo(ticker, start, end)
 
-    while df.empty:
-        print('here')
+    while emptychek(df):
         df = pdr.get_data_yahoo(ticker, start, end)
 
     print(df.head())
@@ -44,6 +74,18 @@ def get_data(ticker):
     return(df)
   except:
     pass
+
+def emptychek(df):
+    empty = True
+    if empty:
+        try:
+            print(df.head())
+            empty = False
+        except:
+            empty = True
+
+    print(empty)
+    return
 
 def graphData(stock):
     df = stock
@@ -124,13 +166,13 @@ def getCandlestick(stock):
     return
 
 def timeSeries(df):
-    df['f01'] = df['Adj Close'].shift(-1)
-    df['f02'] = df['Adj Close'].shift(-2)
-    df['f03'] = df['Adj Close'].shift(-3)
-    df['f04'] = df['Adj Close'].shift(-4)
-    df['f05'] = df['Adj Close'].shift(-5)
-    df['f06'] = df['Adj Close'].shift(-6)
-    df['f07'] = df['Adj Close'].shift(-7)
+    df['f01'] = df['Close'].shift(-1)
+    df['f02'] = df['Close'].shift(-2)
+    df['f03'] = df['Close'].shift(-3)
+    df['f04'] = df['Close'].shift(-4)
+    df['f05'] = df['Close'].shift(-5)
+    df['f06'] = df['Close'].shift(-6)
+    df['f07'] = df['Close'].shift(-7)
 
     df = df[['Close', 'f01', 'f02', 'f03', 'f04', 'f05', 'f06', 'f07']]
 
@@ -140,17 +182,51 @@ def timeSeries(df):
 
     return df
 
-def dataSpecify(df):
+# def dataSpecify(df):
+#
+#     #print(df.head(), df.tail())
+#     df['m50MAvg'] = df['Close'].rolling(window = 50, min_periods = 0).mean()
+#     df['m20MAvg'] = df['Close'].rolling(window = 20, min_periods = 0).mean()
+#     df['m10MAvg'] = df['Close'].rolling(window = 10, min_periods = 0).mean()
+#     df['VolumeMAvg'] = df['Volume'].rolling(window = 50, min_periods = 0).mean()
+#     df['volitility'] = (df['Close']-df['m50MAvg'])/df['Close'] * 100
+#
+#     df['vshift'] = df['volitility'].shift(1)
+#     df['volSlope'] = df['volitility'] - df['vshift']
+#
+#     df['50MAshift'] = df['m50MAvg'].shift(1)
+#     df['50MASlope'] = (df['m50MAvg'] - df['50MAshift'])
+#
+#     df['% change day'] = (df['Open'] - df['Close']) / df['Open'] * 100
+#     df['% daily volit'] = (df['High'] - df['Close']) / df['High'] * 100
+#
+#     df.fillna(0, inplace = True)
+#
+#     #df = df[['Close', '50 MAvg', 'Volume', 'volitility', '% daily volit','% change day' ,'VolumeMAvg']]
+#     #df = df[['Close', '50 MAvg', 'Volume', 'volitility', '% daily volit','% change day' ,'VolumeMAvg']]
+#     dg = df[['Close', 'Open', 'm50MAvg', 'm10MAvg', 'm20MAvg',  'volitility', '% daily volit','% change day', 'Volume','VolumeMAvg']]
+#     df = df[['Close', 'Open', 'm50MAvg',  'volitility', '% daily volit','% change day', 'Volume','VolumeMAvg']]
+#     print(df.head(), df.tail())
+#
+#     return df, dg
 
-    #print(df.head(), df.tail())
+def dataSpecify(df):
+    print(df.head(), df.tail())
+
     df['m50MAvg'] = df['Close'].rolling(window = 50, min_periods = 0).mean()
     df['m20MAvg'] = df['Close'].rolling(window = 20, min_periods = 0).mean()
     df['m10MAvg'] = df['Close'].rolling(window = 10, min_periods = 0).mean()
     df['VolumeMAvg'] = df['Volume'].rolling(window = 50, min_periods = 0).mean()
-    df['volitility'] = (df['Close']-df['m50MAvg'])/df['Close'] * 100
+    df['volitility1'] = (df['Close']-df['m50MAvg'])/df['Close'] * 100
 
-    df['vshift'] = df['volitility'].shift(1)
-    df['volSlope'] = df['volitility'] - df['vshift']
+    df['e50MAvg'] = df['Close'].ewm(span = 50, adjust = False, min_periods = 0).mean()
+    df['e26MAvg'] = df['Close'].ewm(span = 26, adjust = False, min_periods = 0).mean()
+    df['e12MAvg'] = df['Close'].ewm(span = 12, adjust = False, min_periods = 0).mean()
+
+    df['MACD'] = df['e12MAvg'] - df['e26MAvg']
+
+    df['vshift'] = df['volitility1'].shift(1)
+    df['volSlope'] = df['volitility1'] - df['vshift']
 
     df['50MAshift'] = df['m50MAvg'].shift(1)
     df['50MASlope'] = (df['m50MAvg'] - df['50MAshift'])
@@ -158,12 +234,16 @@ def dataSpecify(df):
     df['% change day'] = (df['Open'] - df['Close']) / df['Open'] * 100
     df['% daily volit'] = (df['High'] - df['Close']) / df['High'] * 100
 
+    df['cShift'] = df['Close'].shift(1)
+    df['%volit'] = (df['cShift'] - df['Close']) / df['Close'] * 100
     df.fillna(0, inplace = True)
 
-    #df = df[['Close', '50 MAvg', 'Volume', 'volitility', '% daily volit','% change day' ,'VolumeMAvg']]
-    #df = df[['Close', '50 MAvg', 'Volume', 'volitility', '% daily volit','% change day' ,'VolumeMAvg']]
-    dg = df[['Close', 'Open', 'm50MAvg', 'm10MAvg', 'm20MAvg',  'volitility', '% daily volit','% change day', 'Volume','VolumeMAvg']]
-    df = df[['Close', 'Open', 'm50MAvg',  'volitility', '% daily volit','% change day', 'Volume','VolumeMAvg']]
+    print(df['%volit'].head(15))
+    #df = df[['Close', '50 MAvg', 'Volume', 'volitility1', '% daily volit','% change day' ,'VolumeMAvg', '%volit']]
+    #df = df[['Close', '50 MAvg', 'Volume', 'volitility1', '% daily volit','% change day' ,'VolumeMAvg', '%volit']]
+    dg = df[['Close', 'Open', 'm50MAvg', 'm10MAvg', 'm20MAvg',  'volitility1', '% daily volit','% change day', 'Volume','VolumeMAvg', '%volit']]
+    #df = df[['Close', 'Open', 'm50MAvg', 'Volume', 'volitility1', '% daily volit','% change day' ,'VolumeMAvg', '%volit']]
+    df = df[['Close', 'Open', 'e50MAvg', 'Volume', 'volitility1','% change day' ,'VolumeMAvg', 'MACD']]
     print(df.head(), df.tail())
 
     return df, dg
@@ -231,6 +311,7 @@ def train_test_sets(df, scaling = False, days = 1):
     #print(df.tail())
 
     #X = np.array(df.drop(['Label', 'Close'], axis = 1))
+    #X = np.array(df.drop(['Label', '%volit'], axis = 1))
     X = np.array(df.drop(['Label'], axis = 1))
     if scaling:
         X = preprocessing.scale(X)
@@ -289,9 +370,22 @@ def nuralNetTwo(X_train, X_test, y_train, y_test, X_lately):
 def predictionReduce(pred, pred1):
     return (pred + pred1)/2
 
-#def
+def certainty():
+    print('need to work on it')
 
+def search():
+    print('we pick compnaies that we update regularly, 500, we pull their prices for today hourly and search to see which company we well to or hop to. we \n need predict their stock price, and run a company certainty check to see if it is worth hopping to them, then we need to make sure we arent loosing money\n by hopping to them')
 
+def companyCertainty():
+    print('take the price data for a company, maybe the last 10 days or so and see if they are worth hopping to from the stock we are on right now')
+    print('we need to train a ml on the company, then save those weights so that we can quickly search compnayies and repeatedly predict their prices.')
+    print('model should be updated weekly')
+
+def companylistUpdate():
+    print('if we make this an app we can just have the user pick the companies they would like to invest them, then auto populate the rest of list based on those companies')
+
+def sentimentAnalysis():
+    print('mostly done on weekends to track the trejectory of the stock for the next week')
 
 df = get_data('AAPL')
 #getCandlestick(df)
@@ -312,4 +406,6 @@ print(c)
 X_train, X_test, y_train, y_test, X_lately = train_test_sets(data, scaling = True, days = 1)
 pred = nuralNetOne(X_train, X_test, y_train, y_test, X_lately)
 pred1 = nuralNetTwo(X_train, X_test, y_train, y_test, X_lately)
+#model updated daily or every 2 days
 pred = predictionReduce(pred, pred1)
+print(pred)
